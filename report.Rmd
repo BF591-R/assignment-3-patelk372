@@ -7,6 +7,9 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(biomaRt)
+library(tibble)
 ```
 
 **Please read this brief introduction to R Markdown, and complete the second
@@ -119,6 +122,12 @@ prior assignments.
 
 ```{r load_expression}
 
+load_expression <- function(filepath) {
+  tibble_file = readr::read_csv(filepath)
+    return(tibble_file)
+}
+  
+  
 # Load the expression data
 result_tib <- load_expression("data/example_intensity_data_subset.csv")
 result_tib # Display the initial rows of the data
@@ -140,6 +149,17 @@ allow for swift data transformations, enhancing both clarity and performance.
 
 
 ```{r filter_15}
+
+filter_15 <- function(tibble){
+  data <- tibble[,-1] #columns after first contain actual data 
+  over_threshold <- data > log2(15) #filter to isolate data that passes the threshold
+  sample_prop <- rowMeans(over_threshold) 
+  final_data <- sample_prop > 0.15 #filter to isolate rows with samples above the 15% criteria 
+  probes <- tibble[final_data, 1]
+    return(probes)
+}
+
+
 filtered_probes <- c(filter_15(result_tib)$probe)
 print(paste0("Original number of probes in unfiltered data: ", nrow(result_tib)))
 print(paste0("Probes remaining in filtered dataset: ", length(filtered_probes))) 
@@ -170,6 +190,14 @@ character vector, and `dplyr::as_tibble()` for converting a data frame back to a
 tibble.
 ```{r affy_to_hgnc}
 # Converting a sample affy ID to HGNC
+
+affy_to_hgnc <- function(affy_vector) {
+  hmart <- useMart(biomart = "ENSEMBL_MART_ENSEMBL", dataset = "hsapiens_gene_ensembl")
+  ids <- getBM(attributes = c("affy_hg_u133_plus_2", "hgnc_symbol"), filters = "affy_hg_u133_plus_2", values = pull(affy_vector,1), mart = hmart)
+    return(as_tibble(ids))
+}
+
+
 filter_15(result_tib) %>% affy_to_hgnc() -> gene_names
 gene_names
 ```
@@ -193,6 +221,11 @@ In the end, the output is a tibble streamlined to only the genes of interest, wi
 # Sample data and gene lists
 goodGenes <- c("SLC1A4", "MGAT5B", "LINC02907", "BRIP1", "NRIP1", "TGDS", "PSMD10")
 badGenes <- c("MAF", "PLD4", "LIG3", "RARA", "NOTCH4", "USP8", "RARG")
+
+reduce_data <- function(expr_tibble, names_ids, good_genes, bad_genes){
+  #inner_join(expr_tibble, names_ids, )
+    return(NULL)
+}
 
 # Applying the function
 reduced_data <- reduce_data(result_tib, gene_names, goodGenes, badGenes)
@@ -218,6 +251,16 @@ and the values column named 'values' (the default).
 ```{r convert standard tibble format to long format for plotting}
 # original data in "wide" format
 reduced_data
+
+convert_to_long <- function(tibble) {
+  converted_tibble <- pivot_longer(
+    tibble, 
+    cols = -c(probe, hgnc_symbol, gene_set),
+    names_to = "sample", 
+    values_to = "value"
+  )
+    return(converted_tibble)
+}
 
 # data in long format for easy plotting in ggplot2
 long_format_data <- convert_to_long(reduced_data)
