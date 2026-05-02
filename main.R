@@ -121,10 +121,15 @@ affy_to_hgnc <- function(affy_vector) {
 #' `  <chr>       <chr>   <chr>       <dbl>     ...`
 #' `1 202860_at   DENND4B good        7.16      ...`
 #' `2 204340_at   TMEM187 good        6.40      ...`
-reduce_data <- function(expr_tibble, names_ids, good_genes, bad_genes){
-    return(NULL)
+reduce_data <- function(expr_tibble, names_ids, good_genes, bad_genes) {
+  colnames(expr_tibble)[1] <- "probeid"
+  colnames(names_ids)[1] <- "probeid"
+  merged <- merge(expr_tibble, names_ids, by = "probeid")
+  merged$gene_set <- ifelse(merged$hgnc_symbol %in% good_genes, "good",
+                            ifelse(merged$hgnc_symbol %in% bad_genes, "bad", NA))
+  merged <- merged[!is.na(merged$gene_set), ]
+  return(merged)
 }
-
 #' Convert a wide format tibble to long for easy plotting
 #'
 #' @param tibble A tibble of data in wide format. Specifically, it should be 
