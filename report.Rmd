@@ -222,9 +222,14 @@ In the end, the output is a tibble streamlined to only the genes of interest, wi
 goodGenes <- c("SLC1A4", "MGAT5B", "LINC02907", "BRIP1", "NRIP1", "TGDS", "PSMD10")
 badGenes <- c("MAF", "PLD4", "LIG3", "RARA", "NOTCH4", "USP8", "RARG")
 
-reduce_data <- function(expr_tibble, names_ids, good_genes, bad_genes){
-  #inner_join(expr_tibble, names_ids, )
-    return(NULL)
+reduce_data <- function(expr_tibble, names_ids, good_genes, bad_genes) {
+  colnames(expr_tibble)[1] <- "probeid"
+  colnames(names_ids)[1] <- "probeid"
+  merged <- merge(expr_tibble, names_ids, by = "probeid")
+  merged$gene_set <- ifelse(merged$hgnc_symbol %in% good_genes, "good",
+                            ifelse(merged$hgnc_symbol %in% bad_genes, "bad", NA))
+  merged <- merged[!is.na(merged$gene_set), ]
+  return(merged)
 }
 
 # Applying the function
@@ -276,5 +281,12 @@ this plot.
 ```{r boxplot from long format data using ggplot2, echo=FALSE}
 library(ggplot2)
 
+ggplot(long_format_data, aes(x = gene_set, y = value, fill = gene_set)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("good" = "steelblue", "bad" = "salmon")) +
+  labs(x = "Gene Set", y = "Expression Value", 
+       title = "Expression Levels: Good vs Bad Genes") +
+  theme_bw() +
+  theme(legend.position = "none")
 
 ```
